@@ -67,7 +67,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
+@Preview (name = "Light Mode", showBackground = true)
+@Preview (name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 fun GreetingPreview() {
     HelloComposeTheme {
