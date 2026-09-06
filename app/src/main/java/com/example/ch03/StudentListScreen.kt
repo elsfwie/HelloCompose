@@ -44,7 +44,26 @@ fun StudentListScreen() {
 fun DaftarMahasiswa(
     mahasiswaList: List<Mahasiswa>,
     modifier: Modifier = Modifier
-) {
+) { //kategori berdasarkan ipk
+    val categories = listOf(
+        "All",
+        "IPK ≥ 3.5",
+        "IPK < 3.5"
+    )
+
+    var selectedCategory by remember {
+        mutableStateOf("All")
+    }
+
+    val filteredMahasiswa = mahasiswaList.filter { mahasiswa ->
+        when(selectedCategory){
+            "All" -> true
+            "IPK ≥ 3.5" ->mahasiswa.ipk >= 3.5
+            "IPK < 3.5" -> mahasiswa.ipk < 3.5
+            else -> true
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
