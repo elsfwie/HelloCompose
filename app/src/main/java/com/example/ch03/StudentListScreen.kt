@@ -50,6 +50,8 @@ fun DaftarMahasiswa(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+
+        // untuk bedakan kategori
         item {
             Text(
                 text = "Daftar Mahasiswa",
