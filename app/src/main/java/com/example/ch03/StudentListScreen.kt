@@ -53,11 +53,32 @@ fun DaftarMahasiswa(
 
         // untuk bedakan kategori
         item {
-            Text(
-                text = "Daftar Mahasiswa",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(categories) { category ->
+                    Card(
+                        modifier = Modifier.clickable {
+                            selectedCategory = category
+                        }
+                    ) {
+                        Text(
+                            text = category,
+                            modifier = Modifier.padding(
+                                horizontal = 16.dp,
+                                vertical = 8.dp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        items(
+            items = filteredMahasiswa,
+            key = { it.nim }
+        ) { mahasiswa ->
+            MahasiswaCard(mahasiswa)
         }
     }
 }
