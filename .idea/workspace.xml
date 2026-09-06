@@ -10,7 +10,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2a7dcab9-7745-4327-abe6-dfb27614f042" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/local.properties" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../../pertemuan 2/Tugas pertemuan 2 pdf/latihanCoroutine/.gitignore" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../../pertemuan 2/Tugas pertemuan 2 pdf/latihanCoroutine/app/.gitignore" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../../pertemuan 2/Tugas pertemuan 2 pdf/latihanCoroutine/app/build.gradle.kts" afterDir="false" />
@@ -50,6 +49,7 @@
       <change afterPath="$PROJECT_DIR$/../../pertemuan 2/Tugas pertemuan 2 pdf/latihanCoroutine/gradlew" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../../pertemuan 2/Tugas pertemuan 2 pdf/latihanCoroutine/gradlew.bat" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../../pertemuan 2/Tugas pertemuan 2 pdf/latihanCoroutine/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -66,7 +66,7 @@
     </projectState>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1,
