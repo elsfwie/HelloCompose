@@ -69,3 +69,19 @@ fun MainScreen() {
         }
     }
 }
+
+@Preview (name = "Light Mode", showBackground = true)
+@Preview (name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Composable
+fun MainScreenModes() {
+    Ch03Theme(
+        dynamicColor = false
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            MainScreen()
+        }
+    }
+}
