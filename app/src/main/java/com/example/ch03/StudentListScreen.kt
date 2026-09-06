@@ -50,11 +50,12 @@ fun DaftarMahasiswa(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(
-            items = mahasiswaList,
-            key = { it.nim }
-        ) { mahasiswa ->
-            MahasiswaCard(mahasiswa)
+        item {
+            Text(
+                text = "Daftar Mahasiswa",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
     }
 }
