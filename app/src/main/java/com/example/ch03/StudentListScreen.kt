@@ -23,6 +23,16 @@ import com.example.ch03.ui.theme.Ch03Theme
 data class Mahasiswa(val nama: String, val nim: String, val ipk: Double)
 
 val dummyMahasiswa = listOf(
+    Mahasiswa("Matthew Cruz", "0108230001", 3.80),
+    Mahasiswa("Eliezer Frederick", "0108220001", 3.90),
+    Mahasiswa("Dheavanda Wijaya", "01082240014", 3.99),
+    Mahasiswa("Hana Nisrina", "01082240031", 3.99),
+    Mahasiswa("Jennifer", "01082240029", 3.99),
+    Mahasiswa("Tham tham", "01082220009", 2.50),
+    Mahasiswa("Kael Manikoe", "01082280007", 3.89),
+    Mahasiswa("Samuel", "01082290005", 2.80),
+    Mahasiswa("Pierre", "01082290015", 2.65),
+    Mahasiswa("Hosea", "01082290025", 3.20),
     Mahasiswa("Ali Rahman", "22001", 3.85),
     Mahasiswa("Budi Santoso", "22002", 3.40),
     Mahasiswa("Cici Wulandari", "22003", 3.92),
