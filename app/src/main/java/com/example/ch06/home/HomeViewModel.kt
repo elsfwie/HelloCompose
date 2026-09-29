@@ -12,18 +12,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class HomeViewModel(
-    private val repository: ArticleRepository
-) : ViewModel() {
-
+class HomeViewModel(private val repository: ArticleRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
     private var allArticles: List<Article> = emptyList()
     private var refreshJob: Job? = null
 
-    init {
-        refresh()
-    }
+    init { refresh() }
 
     fun refresh() {
         refreshJob?.cancel()
@@ -31,6 +27,7 @@ class HomeViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 allArticles = repository.getArticles()
+                // Gunakan query terbaru, termasuk yang diketik selama loading.
                 _uiState.update {
                     it.copy(isLoading = false, articles = filter(allArticles, it.query))
                 }
@@ -61,4 +58,3 @@ class HomeViewModel(
         }
     }
 }
-
