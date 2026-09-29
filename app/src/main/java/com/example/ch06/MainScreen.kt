@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.ch06.home.HomeRoute
 import com.example.ch06.profile.ProfileRoute
+import com.example.ch05starter.ExploreScreen
 
 @Composable
 fun MainScreen() {
