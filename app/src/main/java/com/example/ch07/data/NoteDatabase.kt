@@ -6,10 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.TypeConverters
 
-// TODO [T4.3] Buat `MIGRATION_1_2 = object : Migration(1, 2)` yang menjalankan
-//   ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'
-//   ('[]' = daftar tag kosong, supaya catatan lama tetap terbaca).
 val MIGRATION_1_2 = object : Migration(1, 2){
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE notes ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
@@ -17,12 +15,19 @@ val MIGRATION_1_2 = object : Migration(1, 2){
     }
 }
 
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"
+        )
+    }
+}
 @Database(
     entities = [NoteEntity::class],
-    version = 2,                 // TODO [T3.2][T4.3] naikkan setiap skema berubah
+    version = 3,
     exportSchema = true          // JSON skema -> app/schemas/ (lihat build.gradle.kts)
 )
-// TODO [T4.2] Daftarkan converter: @TypeConverters(Converters::class)
+@TypeConverters(Converters::class)
 abstract class NoteDatabase : RoomDatabase() {
 
     abstract fun noteDao(): NoteDao
@@ -40,11 +45,7 @@ abstract class NoteDatabase : RoomDatabase() {
                     NoteDatabase::class.java,
                     "note_database"
                 )
-                    // TODO [T4.3] Ganti baris di bawah dengan
-                    //   .addMigrations(MIGRATION_1_2, ...). fallbackToDestructiveMigration
-                    //   MENGHAPUS data pengguna saat versi naik: hanya boleh saat
-                    //   pengembangan awal, jangan dipakai di produksi.
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }

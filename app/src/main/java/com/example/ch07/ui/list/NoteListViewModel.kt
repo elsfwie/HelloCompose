@@ -23,14 +23,12 @@ data class NoteListUiState(
     val notes: List<NoteEntity> = emptyList(),
     val query: String = "",
     val recentlyDeleted: NoteEntity? = null,
-    // TODO [T4.6] Tambahkan `availableTags: List<String> = emptyList()` dan
-    //   `selectedTag: String? = null` untuk filter chip.
+    val availableTags: List<String> = emptyList(),
+    val selectedTag: String? = null,
     val errorMessage: String? = null
 ) {
-    // Turunan: sedang mencari/memfilter atau tidak (menentukan pesan kosong).
-    // TODO [T4.6] Setelah ada selectedTag, sertakan juga `|| selectedTag != null`.
     val isFiltering: Boolean
-        get() = query.isNotBlank()
+        get() = query.isNotBlank() || selectedTag != null
 }
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -42,9 +40,11 @@ class NoteListViewModel(
     private val queryText = MutableStateFlow("")
     private val loadError = MutableStateFlow<String?>(null)
     private val recentlyDeleted = MutableStateFlow<NoteEntity?>(null)
-    // TODO [T4.6] Tambahkan `selectedTag = MutableStateFlow<String?>(null)`.
+
+    private val selectedTag = MutableStateFlow<String?>(null)
 
     // Query ke database ditunda 300 ms setelah pengguna berhenti mengetik
+    // (debounce), dan hanya query TERBARU yang diamati (flatMapLatest).
     // (debounce), dan hanya query TERBARU yang diamati (flatMapLatest).
     // Query kosong tidak ditunda: daftar penuh tampil segera.
     private val searchResults: Flow<List<NoteEntity>> = queryText
@@ -60,20 +60,46 @@ class NoteListViewModel(
         }
 
     // UiState DITURUNKAN dari beberapa sumber (pola Chapter 6).
-    // TODO [T4.6] Tambahkan sumber baru (recentlyDeleted, selectedTag, dan
-    //   `repository.getAllNotes()` untuk daftar tag) ke combine ini. combine
-    //   menerima sampai 5 flow bertipe; gabungkan dua flow dulu jika perlu.
+    private val tagState = combine(
+        repository.getAllNotes(),
+        selectedTag
+    ) { allNotes, selected ->
+        val available = allNotes
+            .flatMap { it.tags }
+            .distinct()
+            .sorted()
+
+        val active = selected?.takeIf { it in available }
+
+        // Lepas filter jika tag sudah tidak digunakan.
+        if (selected != null && active == null) {
+            selectedTag.value = null
+        }
+
+        available to active
+    }
     val uiState: StateFlow<NoteListUiState> = combine(
         searchResults,
         queryText,
         loadError,
-        recentlyDeleted
-    ) { results, query, error, deleted ->
+        recentlyDeleted,
+        tagState
+    ) { results, query, error, deleted, tagInfo->
+        val (available, active) = tagInfo
+
+        val filteredNotes = if (active == null) {
+            results
+        } else {
+            results.filter { active in it.tags }
+        }
+
         NoteListUiState(
-            notes = results,
+            notes = filteredNotes,
             query = query,
             errorMessage = error,
-            recentlyDeleted = deleted
+            recentlyDeleted = deleted,
+            availableTags = available,
+            selectedTag = active
         )
     }.stateIn(
         scope = viewModelScope,
@@ -83,6 +109,13 @@ class NoteListViewModel(
 
     fun onQueryChange(newQuery: String) {
         queryText.value = newQuery
+    }
+    fun onTagSelected(tag: String?) {
+        selectedTag.value = if (selectedTag.value == tag) {
+            null
+        } else {
+            tag
+        }
     }
 
     fun deleteNote(note: NoteEntity) {

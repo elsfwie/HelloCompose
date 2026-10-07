@@ -15,7 +15,8 @@ data class NoteEntity(
     val isPinned: Boolean = false,
 
     @ColumnInfo (defaultValue = "0")
-    val updatedAt: Long = createdAt
-    // TODO [T4.1] Tambahkan kolom `tags: List<String> = emptyList()`. Room tidak
-    //   mengenal List<String>, jadi butuh TypeConverter (T4.2) dan Migration (T4.3).
+    val updatedAt: Long = createdAt,
+
+    @ColumnInfo(defaultValue = "'[]")
+    val tags: List<String> = emptyList()
 )

@@ -36,6 +36,8 @@ public final class NoteDao_Impl implements NoteDao {
 
   private final EntityInsertionAdapter<NoteEntity> __insertionAdapterOfNoteEntity;
 
+  private final Converters __converters = new Converters();
+
   private final EntityDeletionOrUpdateAdapter<NoteEntity> __deletionAdapterOfNoteEntity;
 
   private final EntityDeletionOrUpdateAdapter<NoteEntity> __updateAdapterOfNoteEntity;
@@ -48,7 +50,7 @@ public final class NoteDao_Impl implements NoteDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR REPLACE INTO `notes` (`id`,`title`,`content`,`createdAt`,`isPinned`) VALUES (nullif(?, 0),?,?,?,?)";
+        return "INSERT OR REPLACE INTO `notes` (`id`,`title`,`content`,`createdAt`,`isPinned`,`updatedAt`,`tags`) VALUES (nullif(?, 0),?,?,?,?,?,?)";
       }
 
       @Override
@@ -60,6 +62,9 @@ public final class NoteDao_Impl implements NoteDao {
         statement.bindLong(4, entity.getCreatedAt());
         final int _tmp = entity.isPinned() ? 1 : 0;
         statement.bindLong(5, _tmp);
+        statement.bindLong(6, entity.getUpdatedAt());
+        final String _tmp_1 = __converters.fromTags(entity.getTags());
+        statement.bindString(7, _tmp_1);
       }
     };
     this.__deletionAdapterOfNoteEntity = new EntityDeletionOrUpdateAdapter<NoteEntity>(__db) {
@@ -79,7 +84,7 @@ public final class NoteDao_Impl implements NoteDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `notes` SET `id` = ?,`title` = ?,`content` = ?,`createdAt` = ?,`isPinned` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `notes` SET `id` = ?,`title` = ?,`content` = ?,`createdAt` = ?,`isPinned` = ?,`updatedAt` = ?,`tags` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -91,7 +96,10 @@ public final class NoteDao_Impl implements NoteDao {
         statement.bindLong(4, entity.getCreatedAt());
         final int _tmp = entity.isPinned() ? 1 : 0;
         statement.bindLong(5, _tmp);
-        statement.bindLong(6, entity.getId());
+        statement.bindLong(6, entity.getUpdatedAt());
+        final String _tmp_1 = __converters.fromTags(entity.getTags());
+        statement.bindString(7, _tmp_1);
+        statement.bindLong(8, entity.getId());
       }
     };
     this.__preparedStmtOfDeleteNoteById = new SharedSQLiteStatement(__db) {
@@ -198,6 +206,8 @@ public final class NoteDao_Impl implements NoteDao {
           final int _cursorIndexOfContent = CursorUtil.getColumnIndexOrThrow(_cursor, "content");
           final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "createdAt");
           final int _cursorIndexOfIsPinned = CursorUtil.getColumnIndexOrThrow(_cursor, "isPinned");
+          final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
           final List<NoteEntity> _result = new ArrayList<NoteEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final NoteEntity _item;
@@ -213,7 +223,13 @@ public final class NoteDao_Impl implements NoteDao {
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsPinned);
             _tmpIsPinned = _tmp != 0;
-            _item = new NoteEntity(_tmpId,_tmpTitle,_tmpContent,_tmpCreatedAt,_tmpIsPinned);
+            final long _tmpUpdatedAt;
+            _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
+            final List<String> _tmpTags;
+            final String _tmp_1;
+            _tmp_1 = _cursor.getString(_cursorIndexOfTags);
+            _tmpTags = __converters.toTags(_tmp_1);
+            _item = new NoteEntity(_tmpId,_tmpTitle,_tmpContent,_tmpCreatedAt,_tmpIsPinned,_tmpUpdatedAt,_tmpTags);
             _result.add(_item);
           }
           return _result;
@@ -247,6 +263,8 @@ public final class NoteDao_Impl implements NoteDao {
           final int _cursorIndexOfContent = CursorUtil.getColumnIndexOrThrow(_cursor, "content");
           final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "createdAt");
           final int _cursorIndexOfIsPinned = CursorUtil.getColumnIndexOrThrow(_cursor, "isPinned");
+          final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
           final NoteEntity _result;
           if (_cursor.moveToFirst()) {
             final int _tmpId;
@@ -261,7 +279,13 @@ public final class NoteDao_Impl implements NoteDao {
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsPinned);
             _tmpIsPinned = _tmp != 0;
-            _result = new NoteEntity(_tmpId,_tmpTitle,_tmpContent,_tmpCreatedAt,_tmpIsPinned);
+            final long _tmpUpdatedAt;
+            _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
+            final List<String> _tmpTags;
+            final String _tmp_1;
+            _tmp_1 = _cursor.getString(_cursorIndexOfTags);
+            _tmpTags = __converters.toTags(_tmp_1);
+            _result = new NoteEntity(_tmpId,_tmpTitle,_tmpContent,_tmpCreatedAt,_tmpIsPinned,_tmpUpdatedAt,_tmpTags);
           } else {
             _result = null;
           }
@@ -293,6 +317,8 @@ public final class NoteDao_Impl implements NoteDao {
           final int _cursorIndexOfContent = CursorUtil.getColumnIndexOrThrow(_cursor, "content");
           final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "createdAt");
           final int _cursorIndexOfIsPinned = CursorUtil.getColumnIndexOrThrow(_cursor, "isPinned");
+          final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
           final List<NoteEntity> _result = new ArrayList<NoteEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final NoteEntity _item;
@@ -308,7 +334,13 @@ public final class NoteDao_Impl implements NoteDao {
             final int _tmp;
             _tmp = _cursor.getInt(_cursorIndexOfIsPinned);
             _tmpIsPinned = _tmp != 0;
-            _item = new NoteEntity(_tmpId,_tmpTitle,_tmpContent,_tmpCreatedAt,_tmpIsPinned);
+            final long _tmpUpdatedAt;
+            _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
+            final List<String> _tmpTags;
+            final String _tmp_1;
+            _tmp_1 = _cursor.getString(_cursorIndexOfTags);
+            _tmpTags = __converters.toTags(_tmp_1);
+            _item = new NoteEntity(_tmpId,_tmpTitle,_tmpContent,_tmpCreatedAt,_tmpIsPinned,_tmpUpdatedAt,_tmpTags);
             _result.add(_item);
           }
           return _result;
