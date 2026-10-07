@@ -60,7 +60,7 @@ class NoteListViewModel(
         }
 
     // UiState DITURUNKAN dari beberapa sumber (pola Chapter 6).
-    // TODO [T2.2][T4.6] Tambahkan sumber baru (recentlyDeleted, selectedTag, dan
+    // TODO [T4.6] Tambahkan sumber baru (recentlyDeleted, selectedTag, dan
     //   `repository.getAllNotes()` untuk daftar tag) ke combine ini. combine
     //   menerima sampai 5 flow bertipe; gabungkan dua flow dulu jika perlu.
     val uiState: StateFlow<NoteListUiState> = combine(
@@ -85,7 +85,6 @@ class NoteListViewModel(
         queryText.value = newQuery
     }
 
-    // TODO [T2.2] Setelah menghapus, isi recentlyDeleted dengan catatan tersebut.
     fun deleteNote(note: NoteEntity) {
         viewModelScope.launch {
             repository.deleteNote(note)

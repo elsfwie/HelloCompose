@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 
+
 // Screen murni presentasional: hanya menerima state dan callback.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,8 +111,9 @@ fun NoteListScreen(
                 uiState.notes.isEmpty() -> CenteredMessage(emptyMessage(uiState))
 
                 else -> {
-                    // TODO [T3.5] Hitung `val now = remember(uiState.notes) { System.currentTimeMillis() }`
-                    //   lalu kirim ke NoteCard(now = now, ...).
+                    val now = remember(uiState.notes) {
+                        System.currentTimeMillis()
+                    }
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -119,6 +121,7 @@ fun NoteListScreen(
                         items(uiState.notes, key = { it.id }) { note ->
                             NoteCard(
                                 note = note,
+                                now = now,
                                 onClick = { onEditNote(note.id) },
                                 onDelete = { onDeleteNote(note) },
                                 onTogglePin = { onTogglePin(note) }
