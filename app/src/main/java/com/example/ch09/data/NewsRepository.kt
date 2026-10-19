@@ -24,9 +24,7 @@ class NewsRepositoryImpl(
     private val api: NewsApiService
 ) : NewsRepository {
 
-    // TODO [T2.1] Simpan artikel yang terakhir dimuat agar bisa dicari lewat URL,
-    //   mis. `private val loaded = mutableMapOf<String, Article>()`, diisi di fetch().
-    //   Setelah Tugas 4 selesai, ganti dengan Room (dao.getArticleByUrl).
+    private val loaded = mutableMapOf<String, Article>()
 
     override suspend fun getTopHeadlines(category: NewsCategory): Result<NewsFeed> =
         fetch { api.getTopHeadlines(category = category.apiValue) }
@@ -34,9 +32,9 @@ class NewsRepositoryImpl(
     override suspend fun searchNews(query: String): Result<NewsFeed> =
         fetch { api.searchNews(query = query) }
 
-    // TODO [T2.1] Kembalikan artikel yang URL-nya cocok (sekarang selalu null,
-    //   sehingga layar detail akan menampilkan "Artikel tidak ditemukan").
-    override suspend fun getArticle(url: String): Article? = null
+    override suspend fun getArticle(url: String): Article? {
+        return loaded[url]
+    }
 
     private suspend fun fetch(remote: suspend () -> NewsResponseDto): Result<NewsFeed> {
         val result = runCatching {
@@ -56,6 +54,11 @@ class NewsRepositoryImpl(
         //                 OfflineInfo(cachedAt, error.toUserMessage()))); jika kosong, failure.
         //   fetch() perlu tahu kunci cache-nya (nama kategori, atau "__search__" untuk
         //   pencarian) dan cara membaca cache (getArticles / searchCached).
-        return result.map { articles -> NewsFeed(articles) }
+        return result.map { articles ->
+            articles.forEach { article ->
+                loaded[article.url] = article
+            }
+            NewsFeed(articles)
+        }
     }
 }

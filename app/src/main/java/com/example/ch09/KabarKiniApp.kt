@@ -7,6 +7,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.ch09.ui.news.NewsRoute
 import com.example.ch09.ui.openUrl
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.ch09.ui.detail.ArticleDetailRoute
 
 @Composable
 fun KabarKiniApp() {
@@ -19,14 +22,31 @@ fun KabarKiniApp() {
         composable(Routes.News.route) {
             val context = LocalContext.current
             NewsRoute(
-                // TODO [T2.5] Jangan langsung membuka browser: navigasi ke layar detail
-                //   navController.navigate(Routes.Detail.createRoute(article.url))
-                onArticleClick = { article -> openUrl(context, article.url) }
+                onArticleClick = { article ->
+                    navController.navigate(Routes.Detail.createRoute(article.url)
+                    )
+                }
             )
         }
 
-        // TODO [T2.2] composable(Routes.Detail.route, arguments = listOf(navArgument(...) {
-        //   type = NavType.StringType })) { entry -> ArticleDetailRoute(articleUrl = ...,
-        //   onNavigateBack = { navController.popBackStack() }) }
+        composable(
+            route = Routes.Detail.route,
+            arguments = listOf(
+                navArgument("articleUrl") {
+                    type = NavType.StringType
+                }
+            )
+        ) { entry ->
+
+            val articleUrl =
+                entry.arguments?.getString("articleUrl").orEmpty()
+
+            ArticleDetailRoute(
+                articleUrl = articleUrl,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
