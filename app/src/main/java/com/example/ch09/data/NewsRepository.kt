@@ -1,9 +1,12 @@
 package com.example.ch09.data
 
+import com.example.ch09.data.local.ArticleDao
 import com.example.ch09.data.mapper.toDomain
+import com.example.ch09.data.mapper.toEntity
 import com.example.ch09.data.model.Article
 import com.example.ch09.data.model.NewsCategory
 import com.example.ch09.data.model.NewsFeed
+import com.example.ch09.data.model.OfflineInfo
 import com.example.ch09.data.remote.NewsApiService
 import com.example.ch09.data.remote.dto.NewsResponseDto
 import kotlin.coroutines.cancellation.CancellationException
@@ -15,50 +18,101 @@ interface NewsRepository {
     suspend fun getArticle(url: String): Article?
 }
 
-// TODO [T4.1] Buat data/local/ArticleEntity.kt   (tabel "articles", primary key (category, url))
-// TODO [T4.2] Buat data/local/ArticleDao.kt      (abstract class + @Transaction replaceCategory)
-// TODO [T4.3] Buat data/local/NewsDatabase.kt    (singleton, version = 1, exportSchema = true)
-// TODO [T4.5] Tambahkan parameter `dao: ArticleDao` dan
-//   `clock: () -> Long = System::currentTimeMillis` (waktu cache, mudah diuji).
 class NewsRepositoryImpl(
-    private val api: NewsApiService
+    private val api: NewsApiService,
+    private val dao: ArticleDao,
+    private val clock: () -> Long = System::currentTimeMillis
 ) : NewsRepository {
 
-    private val loaded = mutableMapOf<String, Article>()
+    override suspend fun getTopHeadlines(
+        category: NewsCategory
+    ): Result<NewsFeed> {
+        val cacheKey = category.apiValue
 
-    override suspend fun getTopHeadlines(category: NewsCategory): Result<NewsFeed> =
-        fetch { api.getTopHeadlines(category = category.apiValue) }
-
-    override suspend fun searchNews(query: String): Result<NewsFeed> =
-        fetch { api.searchNews(query = query) }
-
-    override suspend fun getArticle(url: String): Article? {
-        return loaded[url]
+        return fetch(
+            cacheKey = cacheKey,
+            remote = {
+                api.getTopHeadlines(category = category.apiValue)
+            },
+            cached = {
+                dao.getArticles(cacheKey)
+            }
+        )
     }
 
-    private suspend fun fetch(remote: suspend () -> NewsResponseDto): Result<NewsFeed> {
-        val result = runCatching {
-            remote().articles
-                .mapNotNull { it.toDomain() }
-                // NewsAPI bisa mengirim url ganda; LazyColumn(key = url) akan crash
-                .distinctBy { it.url }
-        }
-
-        // runCatching juga menangkap CancellationException (mis. pengguna sudah
-        // pindah kategori). Itu BUKAN error jaringan: lempar ulang.
-        result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
-
-        // TODO [T4.5] Strategi cache:
-        //   - berhasil -> simpan ke Room (dao.replaceCategory(cacheKey, ...)), lalu kembalikan
-        //   - gagal    -> ambil cache; jika ada, Result.success(NewsFeed(cache, offline =
-        //                 OfflineInfo(cachedAt, error.toUserMessage()))); jika kosong, failure.
-        //   fetch() perlu tahu kunci cache-nya (nama kategori, atau "__search__" untuk
-        //   pencarian) dan cara membaca cache (getArticles / searchCached).
-        return result.map { articles ->
-            articles.forEach { article ->
-                loaded[article.url] = article
+    override suspend fun searchNews(
+        query: String
+    ): Result<NewsFeed> {
+        return fetch(
+            cacheKey = "__search__",
+            remote = {
+                api.searchNews(query = query)
+            },
+            cached = {
+                dao.searchCached(query)
+                    .distinctBy { it.url }
             }
-            NewsFeed(articles)
+        )
+    }
+
+    override suspend fun getArticle(
+        url: String
+    ): Article? {
+        return dao.getArticleByUrl(url)?.toDomain()
+    }
+
+    private suspend fun fetch(
+        cacheKey: String,
+        remote: suspend () -> NewsResponseDto,
+        cached: suspend () -> List<com.example.ch09.data.local.ArticleEntity>
+    ): Result<NewsFeed> {
+
+        try {
+            val articles = remote().articles
+                .mapNotNull { it.toDomain() }
+                .distinctBy { it.url }
+
+            val cachedAt = clock()
+
+            val entities = articles.mapIndexed { index, article ->
+                article.toEntity(
+                    category = cacheKey,
+                    position = index,
+                    cachedAt = cachedAt
+                )
+            }
+
+            dao.replaceCategory(cacheKey, entities)
+
+            return Result.success(
+                NewsFeed(articles = articles)
+            )
+
+        } catch (e: CancellationException) {
+            throw e
+
+        } catch (e: Exception) {
+            val fallback = try {
+                cached()
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (cacheError: Exception) {
+                return Result.failure(e)
+            }
+
+            if (fallback.isEmpty()) {
+                return Result.failure(e)
+            }
+
+            return Result.success(
+                NewsFeed(
+                    articles = fallback.map { it.toDomain() },
+                    offline = OfflineInfo(
+                        cachedAt = fallback.minOf { it.cachedAt },
+                        reason = e.toUserMessage()
+                    )
+                )
+            )
         }
     }
 }

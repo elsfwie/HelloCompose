@@ -41,8 +41,7 @@ import com.example.ch09.ui.components.ArticleCard
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.heightIn
+import com.example.ch09.util.formatRelativeTime
 
 // Screen murni presentasional: hanya menerima state dan callback.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,9 +79,32 @@ fun NewsScreen(
                 )
             }
 
-            // TODO [T4.8] Jika uiState.offline != null, tampilkan banner
-            //   "Menampilkan data offline · diperbarui <formatRelativeTime(...)>"
-            //   beserta alasannya (uiState.offline.reason).
+            uiState.offline?.let { offline ->
+                val now = System.currentTimeMillis()
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Menampilkan data offline · diperbarui ${
+                            formatRelativeTime(now, offline.cachedAt)
+                        }",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = offline.reason,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
                 onRefresh = onRefresh,
@@ -203,24 +225,17 @@ private fun CenteredMessage(text: String) {
     }
 }
 
-// TODO [T3.2] Pull-to-refresh hanya bereaksi pada konten yang bisa di-scroll.
-//   Agar layar error/kosong juga bisa ditarik, tambahkan verticalScroll. Hati-hati:
-//   verticalScroll membuat tinggi tak terbatas, sehingga Arrangement.Center tidak
-//   lagi menengahkan isi. Petunjuk: BoxWithConstraints + heightIn(min = maxHeight).
 @Composable
 private fun ScrollableCenter(
-    content: @Composable ColumnScope.() -> Unit)
-{
- BoxWithConstraints(modifier = Modifier.fillMaxSize())
-    {
-     Column(
-         modifier = Modifier
-             .fillMaxSize()
-             .heightIn(min = maxHeight)
-             .padding(24.dp),
-         verticalArrangement = Arrangement.Center,
-         horizontalAlignment = Alignment.CenterHorizontally,
-         content = content
-        )
-    }
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        content = content
+    )
 }

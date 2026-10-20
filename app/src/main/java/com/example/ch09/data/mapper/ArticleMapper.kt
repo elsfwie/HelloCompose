@@ -2,6 +2,7 @@ package com.example.ch09.data.mapper
 
 import com.example.ch09.data.model.Article
 import com.example.ch09.data.remote.dto.ArticleDto
+import com.example.ch09.data.local.ArticleEntity
 
 // NewsAPI menandai artikel yang sudah dihapus penerbitnya dengan "[Removed]"
 private const val REMOVED = "[Removed]"
@@ -28,7 +29,35 @@ fun ArticleDto.toDomain(): Article? {
     )
 }
 
-// TODO [T4.4] Tambahkan mapper untuk cache Room:
-//   fun Article.toEntity(category: String, position: Int, cachedAt: Long): ArticleEntity
-//   fun ArticleEntity.toDomain(): Article
-//   position menjaga urutan artikel seperti dari server.
+fun Article.toEntity(
+    category: String,
+    position: Int,
+    cachedAt: Long
+): ArticleEntity {
+    return ArticleEntity(
+        category = category,
+        url = url,
+        title = title,
+        author = author,
+        description = description,
+        content = content,
+        imageUrl = imageUrl,
+        publishedAt = publishedAt,
+        sourceName = sourceName,
+        position = position,
+        cachedAt = cachedAt
+    )
+}
+
+fun ArticleEntity.toDomain(): Article {
+    return Article(
+        url = url,
+        title = title,
+        author = author,
+        description = description,
+        content = content,
+        imageUrl = imageUrl,
+        publishedAt = publishedAt,
+        sourceName = sourceName
+    )
+}

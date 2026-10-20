@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.ch09.data.model.OfflineInfo
 
 data class NewsUiState(
     val isLoading: Boolean = false,
@@ -22,8 +23,8 @@ data class NewsUiState(
     val categories: List<NewsCategory> = NewsCategory.entries,
     val selectedCategory: NewsCategory = NewsCategory.General,
     val query: String = "",
-    val errorMessage: String? = null
-    // TODO [T4.7] Tambahkan `offline: OfflineInfo? = null` (tidak null = data dari cache Room).
+    val errorMessage: String? = null,
+    val offline: OfflineInfo? = null
 ) {
     val isSearching: Boolean get() = query.isNotBlank()
 }
@@ -70,7 +71,7 @@ class NewsViewModel(
         loadJob = viewModelScope.launch {
             if (delayMs > 0) delay(delayMs)
 
-            _uiState.update { it.copy(isLoading = !isRefresh, isRefreshing = isRefresh, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = !isRefresh, isRefreshing = isRefresh, errorMessage = null, offline = null) }
 
             val state = _uiState.value
             val query = state.query.trim()
@@ -82,13 +83,13 @@ class NewsViewModel(
 
             result
                 .onSuccess { feed ->
-                    // TODO [T4.7] Simpan juga feed.offline ke UiState.
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
                             articles = feed.articles,
-                            errorMessage = null) }
+                            errorMessage = null,
+                            offline = feed.offline) }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -100,7 +101,8 @@ class NewsViewModel(
                             } else {
                             emptyList()
                             },
-                            errorMessage = error.toUserMessage()
+                            errorMessage = error.toUserMessage(),
+                            offline = null
                         )
                     }
                 }
