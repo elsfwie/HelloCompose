@@ -59,21 +59,18 @@ class NewsViewModel(
         load(delayMs = if (query.isBlank()) 0L else searchDebounceMs)
     }
 
-    // TODO [T3.1] Dipanggil saat daftar ditarik ke bawah. Muat ulang dengan
-    //   isRefreshing = true dan isLoading = false, sehingga daftar lama TETAP tampil
-    //   (bukan spinner layar penuh). Tambahkan parameter `isRefresh` pada load().
-    //   Tes yang sudah disediakan: NewsRefreshTest (merah sampai ini selesai).
     fun refresh() {
+        load(isRefresh = true)
     }
 
     fun retry() = load()
 
-    private fun load(delayMs: Long = 0L) {
+    private fun load(delayMs: Long = 0L, isRefresh: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             if (delayMs > 0) delay(delayMs)
 
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = !isRefresh, isRefreshing = isRefresh, errorMessage = null) }
 
             val state = _uiState.value
             val query = state.query.trim()
@@ -86,13 +83,23 @@ class NewsViewModel(
             result
                 .onSuccess { feed ->
                     // TODO [T4.7] Simpan juga feed.offline ke UiState.
-                    _uiState.update { it.copy(isLoading = false, articles = feed.articles) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            articles = feed.articles,
+                            errorMessage = null) }
                 }
                 .onFailure { error ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            articles = emptyList(),
+                            isRefreshing = false,
+                            articles = if (isRefresh) {
+                                it.articles
+                            } else {
+                            emptyList()
+                            },
                             errorMessage = error.toUserMessage()
                         )
                     }

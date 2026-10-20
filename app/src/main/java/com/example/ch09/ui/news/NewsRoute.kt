@@ -29,7 +29,7 @@ fun NewsRoute(
         onQueryChange = viewModel::onQueryChange,
         onCategorySelected = viewModel::onCategorySelected,
         onArticleClick = onArticleClick,
-        // TODO [T3.3] Teruskan viewModel::refresh.
+        onRefresh = viewModel::refresh,
         onRetry = viewModel::retry
     )
 }

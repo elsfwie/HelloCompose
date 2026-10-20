@@ -38,6 +38,11 @@ import androidx.compose.ui.unit.dp
 import com.example.ch09.data.model.Article
 import com.example.ch09.data.model.NewsCategory
 import com.example.ch09.ui.components.ArticleCard
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
 
 // Screen murni presentasional: hanya menerima state dan callback.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +52,7 @@ fun NewsScreen(
     onQueryChange: (String) -> Unit,
     onCategorySelected: (NewsCategory) -> Unit,
     onArticleClick: (Article) -> Unit,
-    // TODO [T3.2] Tambahkan parameter onRefresh: () -> Unit.
+    onRefresh: () -> Unit,
     onRetry: () -> Unit
 ) {
     Scaffold(
@@ -78,42 +83,45 @@ fun NewsScreen(
             // TODO [T4.8] Jika uiState.offline != null, tampilkan banner
             //   "Menampilkan data offline · diperbarui <formatRelativeTime(...)>"
             //   beserta alasannya (uiState.offline.reason).
-
-            // TODO [T3.2] Bungkus `when` di bawah dengan PullToRefreshBox(
-            //   isRefreshing = uiState.isRefreshing, onRefresh = onRefresh).
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading -> Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-
-                    uiState.errorMessage != null -> ErrorState(
-                        message = uiState.errorMessage,
-                        onRetry = onRetry
-                    )
-
-                    uiState.articles.isEmpty() -> CenteredMessage(
-                        if (uiState.isSearching) "Tidak ada berita untuk \"${uiState.query.trim()}\"."
-                        else "Tidak ada berita ditemukan."
-                    )
-
-                    else -> {
-                        // Waktu "sekarang" dihitung ulang setiap daftar berubah
-                        val now = remember(uiState.articles) { System.currentTimeMillis() }
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        uiState.isLoading -> Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            items(uiState.articles, key = { it.url }) { article ->
-                                ArticleCard(
-                                    article = article,
-                                    now = now,
-                                    onClick = { onArticleClick(article) }
-                                )
+                            CircularProgressIndicator()
+                        }
+
+                        uiState.errorMessage != null -> ErrorState(
+                            message = uiState.errorMessage,
+                            onRetry = onRetry
+                        )
+
+                        uiState.articles.isEmpty() -> CenteredMessage(
+                            if (uiState.isSearching) "Tidak ada berita untuk \"${uiState.query.trim()}\"."
+                            else "Tidak ada berita ditemukan."
+                        )
+
+                        else -> {
+                            // Waktu "sekarang" dihitung ulang setiap daftar berubah
+                            val now = remember(uiState.articles) { System.currentTimeMillis() }
+                            LazyColumn(
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(uiState.articles, key = { it.url }) { article ->
+                                    ArticleCard(
+                                        article = article,
+                                        now = now,
+                                        onClick = { onArticleClick(article) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -200,13 +208,19 @@ private fun CenteredMessage(text: String) {
 //   verticalScroll membuat tinggi tak terbatas, sehingga Arrangement.Center tidak
 //   lagi menengahkan isi. Petunjuk: BoxWithConstraints + heightIn(min = maxHeight).
 @Composable
-private fun ScrollableCenter(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        content = content
-    )
+private fun ScrollableCenter(
+    content: @Composable ColumnScope.() -> Unit)
+{
+ BoxWithConstraints(modifier = Modifier.fillMaxSize())
+    {
+     Column(
+         modifier = Modifier
+             .fillMaxSize()
+             .heightIn(min = maxHeight)
+             .padding(24.dp),
+         verticalArrangement = Arrangement.Center,
+         horizontalAlignment = Alignment.CenterHorizontally,
+         content = content
+        )
+    }
 }
