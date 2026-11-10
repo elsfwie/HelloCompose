@@ -13,6 +13,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.auth.GoogleAuthProvider
 
 @Singleton
 class FirebaseAuthRepository @Inject constructor(
@@ -44,11 +45,15 @@ class FirebaseAuthRepository @Inject constructor(
             auth.createUserWithEmailAndPassword(email, password).await()
         }
 
-    // TODO [T5.2] Tukar ID token Google menjadi identitas Firebase:
-    //   val credential = GoogleAuthProvider.getCredential(idToken, null)
-    //   authenticate { auth.signInWithCredential(credential).await() }
-    override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> =
-        notImplemented("T5.2")
+    override suspend fun signInWithGoogle(idToken: String): Result<AuthUser> {
+        val credential = GoogleAuthProvider.getCredential(
+            idToken,
+            null
+        )
+        return authenticate {
+            auth.signInWithCredential(credential).await()
+        }
+    }
 
     override fun logout() = auth.signOut()
 

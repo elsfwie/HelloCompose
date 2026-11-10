@@ -60,7 +60,9 @@ class LoginViewModel @Inject constructor(
 
     // Tugas 5: token didapat Route dari Credential Manager (butuh Activity)
     fun onGoogleIdToken(idToken: String) {
-        // TODO [T5.3] authenticate { authRepository.signInWithGoogle(idToken) }
+        authenticate {
+            authRepository.signInWithGoogle(idToken)
+        }
     }
 
     // message null = pengguna menutup dialog akun Google; bukan error

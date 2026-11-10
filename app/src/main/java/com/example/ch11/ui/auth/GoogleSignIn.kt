@@ -12,21 +12,34 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 // Federated identity: pengguna login di Google, BUKAN di aplikasi ini.
 // Aplikasi hanya menerima ID token yang ditandatangani Google.
 // context harus Activity, karena Credential Manager menampilkan dialog.
-suspend fun requestGoogleIdToken(context: Context, webClientId: String): String {
-    // TODO [T5.1] Minta ID token Google lewat Credential Manager:
-    //   1. GetCredentialRequest.Builder().addCredentialOption(
-    //          GetGoogleIdOption.Builder()
-    //              .setServerClientId(webClientId)          // Web client ID, bukan Android
-    //              .setFilterByAuthorizedAccounts(false)    // tampilkan semua akun di perangkat
-    //              .build()
-    //      ).build()
-    //   2. CredentialManager.create(context).getCredential(context, request).credential
-    //   3. Jika credential is CustomCredential dan
-    //      credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-    //      -> return GoogleIdTokenCredential.createFrom(credential.data).idToken
-    //   4. Selain itu: error("Kredensial Google tidak dikenali.")
-    error("Belum diimplementasikan: TODO [T5.1]")
+
+suspend fun requestGoogleIdToken(
+    context: Context,
+    webClientId: String
+): String {
+    val googleIdOption = GetGoogleIdOption.Builder()
+        .setServerClientId(webClientId)
+        .setFilterByAuthorizedAccounts(false)
+        .build()
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOption)
+        .build()
+    val credential = CredentialManager.create(context)
+        .getCredential(context, request)
+        .credential
+    if (
+        credential is CustomCredential &&
+        credential.type ==
+        GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+    ) {
+        return GoogleIdTokenCredential
+            .createFrom(credential.data)
+            .idToken
+    }
+
+    error("Kredensial Google tidak dikenali.")
 }
+
 
 // null = pengguna membatalkan; tidak perlu ditampilkan sebagai error
 fun googleSignInErrorMessage(e: Exception): String? = when (e) {

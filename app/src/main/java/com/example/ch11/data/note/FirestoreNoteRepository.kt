@@ -81,11 +81,6 @@ class FirestoreNoteRepository @Inject constructor(
        val doc = currentNotes().document(id).get().await()
        return if (doc.exists()) noteFromMap(doc.id, doc.data.orEmpty()) else null
    }
-    // TODO [T3.3] Tiga fungsi tulis. PENTING: JANGAN di-await().
-
-    //   addNote    :
-    //   updateNote :
-    //   deleteNote :
     override fun addNote(note: Note): Result<String> = runCatching {
         val doc = currentNotes().document()   // ID dibuat di perangkat
         doc.set(note.toFirestoreMap()).logFailure("add"); doc.id
