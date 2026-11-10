@@ -21,6 +21,7 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
 private const val TAG = "FirestoreNoteRepo"
 
 // Struktur data:  users/{uid}/notes/{noteId}
@@ -44,45 +45,59 @@ class FirestoreNoteRepository @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { uid -> if (uid == null) flowOf(emptyList()) else notesSnapshots(uid) }
 
-    // TODO [T3.2] Ganti flowOf(emptyList()) dengan callbackFlow + snapshot listener:
-    //   callbackFlow {
-    //       val registration = notesOf(uid)
-    //           .orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING)
-    //           .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
-    //               if (error != null) {
-    //                   close(NoteAccessException(firestoreErrorMessage(error), error))
-    //                   return@addSnapshotListener
-    //               }
-    //               val notes = snapshot?.documents.orEmpty().map { doc ->
-    //                   noteFromMap(doc.id, doc.data.orEmpty(), doc.metadata.hasPendingWrites())
-    //               }
-    //               trySend(sortNotes(notes))
-    //           }
-    //       awaitClose { registration.remove() }       // lepas listener: cegah memory leak
-    //   }
-    // MetadataChanges.INCLUDE: listener juga dipanggil saat server MENGONFIRMASI
-    // penulisan, sehingga tanda "Menunggu sinkron" di kartu bisa hilang.
     @Suppress("UNUSED_PARAMETER")
-    private fun notesSnapshots(uid: String): Flow<List<Note>> = flowOf(emptyList())
+    private fun notesSnapshots(uid: String): Flow<List<Note>> = callbackFlow {
+        val registration = notesOf(uid)
+            .orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING)
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
 
-    // TODO [T3.3] Baca satu dokumen (get() saat offline otomatis membaca cache):
-    //   val doc = currentNotes().document(id).get().await()
-    //   return if (doc.exists()) noteFromMap(doc.id, doc.data.orEmpty()) else null
-    override suspend fun getNote(id: String): Note? = throw notImplemented("T3.3")
+                // Jika terjadi error saat mengambil data
+                if (error != null) {
+                    close(NoteAccessException(firestoreErrorMessage(error), error))
+                    return@addSnapshotListener
+                }
 
+                // Mengubah setiap dokumen Firestore menjadi objek Note
+                val notes = snapshot?.documents.orEmpty().map { doc ->
+                    noteFromMap(
+                        id = doc.id,
+                        data = doc.data.orEmpty(),
+                        hasPendingWrites = doc.metadata.hasPendingWrites()
+                    )
+                }
+
+                // Mengirim daftar catatan yang sudah diurutkan
+                trySend(sortNotes(notes))
+            }
+
+        // Melepaskan listener ketika Flow sudah tidak digunakan
+        awaitClose {
+            registration.remove()
+        }
+    }
+
+
+   override suspend fun getNote(id: String): Note? {
+       val doc = currentNotes().document(id).get().await()
+       return if (doc.exists()) noteFromMap(doc.id, doc.data.orEmpty()) else null
+   }
     // TODO [T3.3] Tiga fungsi tulis. PENTING: JANGAN di-await().
-    // Task Firestore baru selesai setelah SERVER mengonfirmasi; saat offline itu bisa
-    // berjam-jam dan tombol Simpan akan menggantung. Perubahan sudah langsung masuk
-    // cache lokal dan listener langsung memancarkan daftar baru (latency compensation).
-    //   addNote    : runCatching { val doc = currentNotes().document()   // ID dibuat di perangkat
-    //                              doc.set(note.toFirestoreMap()).logFailure("add"); doc.id }
-    //   updateNote : runCatching { currentNotes().document(note.id).set(note.toFirestoreMap()).logFailure("update") }
-    //   deleteNote : runCatching { currentNotes().document(id).delete().logFailure("delete") }
-    override fun addNote(note: Note): Result<String> = Result.failure(notImplemented("T3.3"))
 
-    override fun updateNote(note: Note): Result<Unit> = Result.failure(notImplemented("T3.3"))
+    //   addNote    :
+    //   updateNote :
+    //   deleteNote :
+    override fun addNote(note: Note): Result<String> = runCatching {
+        val doc = currentNotes().document()   // ID dibuat di perangkat
+        doc.set(note.toFirestoreMap()).logFailure("add"); doc.id
+    }
 
-    override fun deleteNote(id: String): Result<Unit> = Result.failure(notImplemented("T3.3"))
+    override fun updateNote(note: Note): Result<Unit> = runCatching {
+        currentNotes().document(note.id).set(note.toFirestoreMap()).logFailure("update")
+    }
+
+    override fun deleteNote(id: String): Result<Unit> = runCatching {
+        currentNotes().document(id).delete().logFailure("delete")
+    }
 
     private fun notImplemented(todo: String) = IllegalStateException("Belum diimplementasikan: TODO [$todo]")
 
