@@ -1,6 +1,7 @@
 package com.example.ch11
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,17 +31,14 @@ fun CatatanKuApp(
         if (isSignedIn) Routes.NoteList.route else Routes.Login.route
     }
 
-    // TODO [T2.5] Navigasi sebagai fungsi dari status login. Tanpa ini, login berhasil
-    // tetapi layar tidak pindah, dan logout tidak kembali ke layar login.
-    //   LaunchedEffect(isSignedIn) {
-    //       val onAuthScreen = navController.currentDestination?.route in authRoutes
-    //       when {
-    //           isSignedIn && onAuthScreen   -> navController.navigateClearingBackStack(Routes.NoteList.route)
-    //           !isSignedIn && !onAuthScreen -> navController.navigateClearingBackStack(Routes.Login.route)
-    //       }
-    //   }
-    // JANGAN memanggil navigate() dari LoginScreen: satu jalur untuk login, registrasi,
-    // Google Sign-In, dan logout.
+    LaunchedEffect(isSignedIn) {
+        val onAuthScreen = navController.currentDestination?.route in authRoutes
+
+        when {
+            isSignedIn && onAuthScreen   -> navController.navigateClearingBackStack(Routes.NoteList.route)
+            !isSignedIn && !onAuthScreen -> navController.navigateClearingBackStack(Routes.Login.route)
+        }
+        }
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.Login.route) {

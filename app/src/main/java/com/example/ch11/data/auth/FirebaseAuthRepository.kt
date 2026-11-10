@@ -9,33 +9,40 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.tasks.await
 
 @Singleton
 class FirebaseAuthRepository @Inject constructor(
     private val auth: FirebaseAuth
 ) : AuthRepository {
 
-    // TODO [T2.1] Ganti flowOf(...) dengan callbackFlow yang mengamati status login:
-    //   callbackFlow {
-    //       val listener = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.toAuthUser()) }
-    //       auth.addAuthStateListener(listener)
-    //       awaitClose { auth.removeAuthStateListener(listener) }
-    //   }.distinctUntilChanged()
-    // flowOf() hanya memancarkan SATU nilai, sehingga login/logout tidak pernah terdeteksi.
-    override val authState: Flow<AuthUser?> = flowOf(auth.currentUser?.toAuthUser())
+    override val authState: Flow<AuthUser?> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener {
+            trySend(it.currentUser?.toAuthUser())
+        }
+
+        auth.addAuthStateListener(listener)
+
+        awaitClose {
+            auth.removeAuthStateListener(listener)
+        }
+    }.distinctUntilChanged()
 
     override val currentUser: AuthUser?
         get() = auth.currentUser?.toAuthUser()
 
-    // TODO [T2.1] authenticate { auth.signInWithEmailAndPassword(email, password).await() }
-    //   (import kotlinx.coroutines.tasks.await)
     override suspend fun login(email: String, password: String): Result<AuthUser> =
-        notImplemented("T2.1")
+        authenticate {
+            auth.signInWithEmailAndPassword(email, password).await()
+        }
 
-    // TODO [T2.1] authenticate { auth.createUserWithEmailAndPassword(email, password).await() }
-    //   createUser... otomatis membuat pengguna langsung login.
     override suspend fun register(email: String, password: String): Result<AuthUser> =
-        notImplemented("T2.1")
+        authenticate {
+            auth.createUserWithEmailAndPassword(email, password).await()
+        }
 
     // TODO [T5.2] Tukar ID token Google menjadi identitas Firebase:
     //   val credential = GoogleAuthProvider.getCredential(idToken, null)

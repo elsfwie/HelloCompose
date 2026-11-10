@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 
 // Status login adalah state seperti state lainnya (Chapter 4).
 // Navigasi di CatatanKuApp menjadi fungsi dari state ini.
@@ -16,14 +19,12 @@ class SessionViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    // TODO [T2.4] Turunkan dari authRepository.authState agar berubah saat login/logout:
-    //   authRepository.authState.stateIn(
-    //       scope = viewModelScope,
-    //       started = SharingStarted.Eagerly,
-    //       initialValue = authRepository.currentUser   // tersedia segera dari disk
-    //   )
-    // Versi sementara di bawah hanya membaca nilai SEKALI saat ViewModel dibuat.
-    val currentUser: StateFlow<AuthUser?> = MutableStateFlow(authRepository.currentUser).asStateFlow()
+    val currentUser: StateFlow<AuthUser?> =
+        authRepository.authState.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = authRepository.currentUser
+        )
 
     // Cukup logout. Navigasi ke layar login terjadi karena state berubah.
     fun logout() = authRepository.logout()

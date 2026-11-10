@@ -37,11 +37,25 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(password = value, errorMessage = null) }
 
     fun login() {
-        // TODO [T2.2] Lengkapi login:
-        //   1. Ambil state = _uiState.value; abaikan jika state.isLoading.
-        //   2. validateLogin(state.email, state.password) -> jika ada pesan,
-        //      simpan ke errorMessage lalu return (JANGAN panggil server).
-        //   3. authenticate { authRepository.login(state.email.trim(), state.password) }
+        val state = _uiState.value
+
+        if (state.isLoading) return
+
+        val error = validateLogin(state.email, state.password)
+
+        if (error != null) {
+            _uiState.update {
+                it.copy(errorMessage = error)
+            }
+            return
+        }
+
+        authenticate {
+            authRepository.login(
+                state.email.trim(),
+                state.password
+            )
+        }
     }
 
     // Tugas 5: token didapat Route dari Credential Manager (butuh Activity)
