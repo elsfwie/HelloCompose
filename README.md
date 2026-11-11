@@ -202,20 +202,31 @@ Rules Playground (perkecil dulu; jangan commit gambar besar).
 ### Alur izin kamera aplikasiku
 
 ```
-(Gambar alurmu di sini, mulai dari "pengguna mengetuk Kamera" sampai semua
- kemungkinan akhir: kamera terbuka, Snackbar galeri, dialog Pengaturan.
- Sebutkan fungsi/kontrak yang menangani tiap langkah.)
+Pengguna mengetuk Kamera
+        │
+        ▼
+cameraClickAction(izin diberikan?, perlu rationale?)
+        ├─ Izin sudah diberikan ───────────────▶ Buka layar kamera
+        ├─ Perlu rationale ────────────────────▶ Tampilkan dialog alasan
+        │                                         ├─ Lanjutkan → minta izin ke sistem
+        │                                         └─ Pakai galeri → buka Photo Picker
+        └─ Izin belum diberikan ───────────────▶ Minta izin ke sistem
+                                                  ├─ Diizinkan → buka layar kamera
+                                                  ├─ Ditolak, rationale masih perlu
+                                                  │   → tampilkan Snackbar tentang galeri
+                                                  └─ Ditolak, rationale tidak perlu lagi
+                                                      → tampilkan dialog Buka Pengaturan
+ 
+ cameraClickAction() menentukan langkah saat tombol Kamera ditekan. Jika izin diminta, permissionResultAction() memeriksa hasilnya. Jika pengguna menolak izin tetapi masih dapat dimintai lagi, aplikasi menampilkan Snackbar yang menawarkan galeri. Jika izin ditolak secara permanen, aplikasi menawarkan untuk membuka Pengaturan. Setelah izin diaktifkan di Pengaturan, pengguna mengetuk Kamera lagi untuk membuka kamera.
 ```
 
 ### Mengapa galeri tidak membutuhkan izin?
 
-(Jelaskan dengan kata-katamu sendiri: delegasi, Photo Picker, content URI dan
-izin sementara, serta perbandingan dengan `READ_MEDIA_IMAGES`.)
+Aplikasi menggunakan Photo Picker melalui ActivityResultContracts.PickVisualMedia(). Pemilih foto disediakan oleh Android, lalu aplikasi menerima URI untuk foto yang dipilih pengguna. URI tersebut memberi akses sementara ke foto itu saja; aplikasi tidak meminta akses ke seluruh koleksi gambar. Karena itu, aplikasi tidak membutuhkan READ_MEDIA_IMAGES atau READ_EXTERNAL_STORAGE. URI pilihan tersebut kemudian digunakan untuk menampilkan preview dan mengompres foto sebelum diunggah.
 
 ### Hasil kompresi
 
-(Tulis contoh: resolusi asli, perkiraan memori jika didekode utuh, ukuran
-berkas setelah kompres.)
+Resolusi foto asli yang saya uji adalah [lebar] × [tinggi] piksel. Jika seluruh gambar didekode sebagai bitmap ARGB_8888, perkiraan memorinya adalah lebar × tinggi × 4 byte, yaitu sekitar [hasil perhitungan] byte. Setelah dikompresi menjadi JPEG, resolusinya menjadi [lebar hasil] × [tinggi hasil] piksel dengan ukuran berkas [ukuran berkas hasil].
 
 ---
 
