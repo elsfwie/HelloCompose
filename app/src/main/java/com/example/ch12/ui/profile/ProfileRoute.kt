@@ -14,6 +14,12 @@ import com.example.ch12.ui.camera.openAppSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import com.example.ch12.util.PermissionAction
+import com.example.ch12.util.cameraClickAction
+import com.example.ch12.util.permissionResultAction
+import com.example.ch12.ui.camera.hasCameraPermission
+import com.example.ch12.ui.camera.shouldShowCameraRationale
 
 enum class PermissionDialog { Rationale, Settings }
 
@@ -43,17 +49,20 @@ fun ProfileRoute(
         )
     }
 
-    // TODO [T3.3] Daftarkan launcher izin kamera:
-    //   val requestCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-    //       when (permissionResultAction(isGranted, context.shouldShowCameraRationale())) {
-    //           PermissionAction.OpenCamera   -> onOpenCamera()
-    //           PermissionAction.ShowDenied   -> viewModel.onCameraPermissionDenied()
-    //           PermissionAction.OpenSettings -> dialog = PermissionDialog.Settings
-    //           else -> Unit
-    //       }
-    //   }
-    //   lalu ganti isi requestCameraPermission dengan: requestCamera.launch(Manifest.permission.CAMERA)
-    val requestCameraPermission: () -> Unit = {}
+    val requestCamera = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        when (permissionResultAction(isGranted, context.shouldShowCameraRationale())) {
+            PermissionAction.OpenCamera -> onOpenCamera()
+            PermissionAction.ShowDenied -> viewModel.onCameraPermissionDenied()
+            PermissionAction.OpenSettings -> dialog = PermissionDialog.Settings
+            else -> Unit
+        }
+    }
+
+    val requestCameraPermission: () -> Unit = {
+        requestCamera.launch(Manifest.permission.CAMERA)
+    }
 
     ProfileScreen(
         uiState = uiState,
@@ -61,13 +70,19 @@ fun ProfileRoute(
         permissionDialog = dialog,
         onNavigateBack = onNavigateBack,
         onPickFromGallery = launchPicker,
-        // Izin diminta DALAM KONTEKS: saat tombol Kamera diketuk
-        // TODO [T3.3] Izin diminta DALAM KONTEKS: saat tombol Kamera diketuk.
-        //   when (cameraClickAction(context.hasCameraPermission(), context.shouldShowCameraRationale())) {
-        //       OpenCamera -> onOpenCamera(); ShowRationale -> dialog = PermissionDialog.Rationale
-        //       RequestPermission -> requestCameraPermission(); else -> Unit }
-        //   JANGAN langsung onOpenCamera(): izin bisa dicabut kapan saja.
-        onTakePhoto = { onOpenCamera() },
+        onTakePhoto = {
+            when (
+                cameraClickAction(
+                    context.hasCameraPermission(),
+                    context.shouldShowCameraRationale()
+                )
+            ) {
+                PermissionAction.OpenCamera -> onOpenCamera()
+                PermissionAction.ShowRationale -> dialog = PermissionDialog.Rationale
+                PermissionAction.RequestPermission -> requestCameraPermission()
+                else -> Unit
+            }
+        },
         onRationaleAccepted = {
             dialog = null
             requestCameraPermission()
