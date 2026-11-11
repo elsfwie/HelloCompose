@@ -15,10 +15,16 @@ fun decodedSizeBytes(width: Int, height: Int): Long = width.toLong() * height * 
 // inSampleSize = n berarti hanya 1 dari n piksel (per sisi) yang didekode.
 // Dipilih pangkat 2 terbesar yang membuat sisi TERPENDEK masih >= reqSize,
 // karena foto profil dipotong persegi dari sisi terpendek.
-// TODO [T4.1] Mulai dari 1; selama minOf(width, height) / (inSampleSize * 2) >= reqSize,
-//   kalikan inSampleSize dengan 2. Contoh: (4000, 3000, 400) -> 4.
-fun calculateInSampleSize(width: Int, height: Int, reqSize: Int): Int =
-    TODO("T4.1 calculateInSampleSize")
+fun calculateInSampleSize(width: Int, height: Int, reqSize: Int): Int {
+    var sampleSize = 1
+    val shortestSide = minOf(width, height)
+
+    while (shortestSide / (sampleSize * 2) >= reqSize) {
+        sampleSize *= 2
+    }
+
+    return sampleSize
+}
 
 data class SquareCrop(val left: Int, val top: Int, val size: Int)
 

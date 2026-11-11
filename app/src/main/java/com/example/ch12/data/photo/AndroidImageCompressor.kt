@@ -10,6 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
 import javax.inject.Inject
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import com.example.ch12.util.PROFILE_PHOTO_QUALITY
+import com.example.ch12.util.PROFILE_PHOTO_SIZE
+import com.example.ch12.util.calculateInSampleSize
+import com.example.ch12.util.centerSquare
+import java.io.ByteArrayOutputStream
 
 // Foto 4000x3000 -> JPEG persegi 400x400, sekitar 30-60 KB
 class AndroidImageCompressor @Inject constructor(
@@ -21,21 +29,75 @@ class AndroidImageCompressor @Inject constructor(
         @Suppress("UNUSED_VARIABLE")
         val source = Uri.parse(uri)
 
-        // TODO [T4.2] Dekode dua tahap (lihat Bab 12, "Berapa Besar Sebuah Foto di Memori?"):
-        //   1. val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        //      open(source).use { BitmapFactory.decodeStream(it, null, bounds) }
-        //      outWidth/outHeight <= 0 -> throw ImageDecodeException("Berkas yang dipilih bukan gambar.")
-        //   2. Options().apply { inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight,
-        //      PROFILE_PHOTO_SIZE) } -> decodeStream lagi (stream BARU) -> sampled
-        //   3. Matrix: postScale(minOf(1f, PROFILE_PHOTO_SIZE.toFloat() / sisi)) lalu
-        //      postRotate(readRotation(source).toFloat())
-        //      Bitmap.createBitmap(sampled, x, y, w, h, matrix, true)
-        //      TODO [T6.2] (Tantangan) x, y, w, h dari centerSquare(...) agar hasilnya persegi.
-        //      Sebelum T6.2: pakai 0, 0, sampled.width, sampled.height dan sisi = maxOf(width, height).
-        //   4. ByteArrayOutputStream -> bitmap.compress(JPEG, PROFILE_PHOTO_QUALITY, out)
-        //   5. recycle() bitmap, kembalikan CompressedImage(bytes, bounds.outWidth, bounds.outHeight,
-        //      hasil.width, hasil.height)
-        TODO("T4.2 compress")
+        val bounds = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        open(source).use {
+            BitmapFactory.decodeStream(it, null, bounds)
+        }
+
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            throw ImageDecodeException("Berkas yang dipilih bukan gambar.")
+        }
+
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = calculateInSampleSize(
+                bounds.outWidth,
+                bounds.outHeight,
+                PROFILE_PHOTO_SIZE
+            )
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+
+        val sampled = open(source).use {
+            BitmapFactory.decodeStream(it, null, options)
+        } ?: throw ImageDecodeException("Gambar tidak dapat dibuka.")
+
+        var outputBitmap: Bitmap? = null
+
+        try {
+            val crop = centerSquare(sampled.width, sampled.height)
+            val scale = minOf(1f, PROFILE_PHOTO_SIZE.toFloat() / crop.size)
+
+            val matrix = Matrix().apply {
+                postScale(scale, scale)
+                postRotate(readRotation(source).toFloat())
+            }
+
+            val result = Bitmap.createBitmap(
+                sampled,
+                crop.left,
+                crop.top,
+                crop.size,
+                crop.size,
+                matrix,
+                true
+            )
+            outputBitmap = result
+
+            val bytes = ByteArrayOutputStream().use { stream ->
+                if (!result.compress(
+                        Bitmap.CompressFormat.JPEG,
+                        PROFILE_PHOTO_QUALITY,
+                        stream
+                    )
+                ) {
+                    throw ImageDecodeException("Gambar gagal dikompres.")
+                }
+                stream.toByteArray()
+            }
+
+            return@withContext CompressedImage(
+                bytes = bytes,
+                originalWidth = bounds.outWidth,
+                originalHeight = bounds.outHeight,
+                width = result.width,
+                height = result.height
+            )
+        } finally {
+            if (outputBitmap !== sampled) outputBitmap?.recycle()
+            sampled.recycle()
+        }
     }
 
     // content:// (Photo Picker) maupun file:// (CameraX) dibuka lewat ContentResolver
