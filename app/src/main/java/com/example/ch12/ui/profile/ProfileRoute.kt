@@ -11,6 +11,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ch12.ui.camera.hasCameraHardware
 import com.example.ch12.ui.camera.openAppSettings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 
 enum class PermissionDialog { Rationale, Settings }
 
@@ -28,13 +31,17 @@ fun ProfileRoute(
     // rememberSaveable: dialog tetap terbuka setelah rotasi layar
     var dialog by rememberSaveable { mutableStateOf<PermissionDialog?>(null) }
 
-    // TODO [T2.1] Daftarkan Photo Picker (delegasi, TANPA izin):
-    //   val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-    //       if (uri != null) viewModel.onPhotoSelected(uri.toString())    // null = dibatalkan
-    //   }
-    //   lalu ganti isi launchPicker dengan:
-    //   pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-    val launchPicker: () -> Unit = {}
+    val pickPhoto = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) viewModel.onPhotoSelected(uri.toString())
+    }
+
+    val launchPicker: () -> Unit = {
+        pickPhoto.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+        )
+    }
 
     // TODO [T3.3] Daftarkan launcher izin kamera:
     //   val requestCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
