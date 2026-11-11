@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.example.ch12.data.note.NotSignedInException
+import com.google.firebase.firestore.SetOptions
 
 private const val TAG = "FirestoreProfileRepo"
 
@@ -48,13 +50,16 @@ class FirestoreProfileRepository @Inject constructor(
         awaitClose { registration.remove() }
     }.distinctUntilChanged()
 
-    // TODO [T4.5] Simpan REFERENSI foto ke users/{uid}, TANPA await() (sama dengan Ch11):
-    //   runCatching {
-    //     val uid = authRepository.currentUser?.uid ?: throw NotSignedInException()
-    //     profileOf(uid).set(photoFieldsOf(photoUrl, updatedAt), SetOptions.merge())
-    //       .addOnFailureListener { e -> Log.w(TAG, "Profil ditolak server: ${e.message}") }
-    //   }
-    //   merge(): field lain di dokumen (jika nanti ada) tidak ikut terhapus.
     override fun updatePhotoUrl(photoUrl: String, updatedAt: Long): Result<Unit> =
-        Result.failure(NotImplementedError("Belum diimplementasikan: TODO [T4.5]"))
-}
+        runCatching {
+            val uid = authRepository.currentUser?.uid
+                ?: throw NotSignedInException()
+
+            profileOf(uid)
+                .set(photoFieldsOf(photoUrl, updatedAt), SetOptions.merge())
+                .addOnFailureListener { e ->
+                    Log.w(TAG, "Profil ditolak server: ${e.message}")
+                }
+
+            Unit
+        }

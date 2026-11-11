@@ -19,17 +19,19 @@ service cloud.firestore {
           && note.tags is list;
     }
 
-    // TODO [T4.6] Dokumen profil users/{userId} belum punya aturan, sehingga
-    // penulisan photoUrl DITOLAK. Tambahkan:
-    //   - function isValidProfile(): hanya field 'photoUrl' (string URL, <= 2048 karakter)
-    //     dan 'photoUpdatedAt' (int). Petunjuk: keys().hasOnly([...]), matches('https?://.*')
-    //   - match /users/{userId} { allow read: pemilik; allow create, update: pemilik && isValidProfile() }
+    function isValidProfile() {
+      let profile = request.resource.data;
+      return profile.keys().hasAll(['photoUrl', 'photoUpdatedAt'])
+          && profile.keys().hasOnly(['photoUrl', 'photoUpdatedAt'])
+          && profile.photoUrl is string
+          && profile.photoUrl.size() <= 2048
+          && profile.photoUrl.matches('https?://.*')
+          && profile.photoUpdatedAt is int;
+    }
 
-    // Setiap pengguna hanya dapat mengakses catatannya sendiri.
-    // Path lain tidak punya aturan, sehingga otomatis DITOLAK.
-    match /users/{userId}/notes/{noteId} {
-      allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isValidNote();
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidProfile();
     }
   }
 }

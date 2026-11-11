@@ -104,19 +104,49 @@ class ProfileViewModel @Inject constructor(
         uploadJob = viewModelScope.launch {
             _uiState.update { it.copy(isCompressing = true, errorMessage = null) }
             try {
-                // TODO [T4.4] Lengkapi tiga langkah ini:
-                //   1. val image = imageCompressor.compress(uri)
-                //      -> isCompressing = false, uploadProgress = 0f,
-                //         compressionInfo = compressionSummary(image.originalWidth, ..., image.bytes.size.toLong())
-                //   2. photoStorage.uploadProfilePhoto(image.bytes).collect { event -> when (event) {
-                //        is UploadEvent.Progress -> uploadProgress = event.fraction
-                //        is UploadEvent.Done     -> langkah 3 } }
-                //   3. val now = clock.now()
-                //      profileRepository.updatePhotoUrl(event.downloadUrl, now).getOrThrow()
-                //      savedStateHandle[KEY_SELECTED_PHOTO] = null
-                //      -> photoUrl = event.downloadUrl, photoUpdatedAt = now, selectedPhoto = null,
-                //         uploadProgress = null, message = "Foto profil diperbarui"
-                throw NotImplementedError("Belum diimplementasikan: TODO [T4.4]")
+                val image = imageCompressor.compress(uri)
+
+                _uiState.update {
+                    it.copy(
+                        isCompressing = false,
+                        uploadProgress = 0f,
+                        compressionInfo = compressionSummary(
+                            image.originalWidth,
+                            image.originalHeight,
+                            image.width,
+                            image.height,
+                            image.bytes.size.toLong()
+                        )
+                    )
+                }
+
+                photoStorage.uploadProfilePhoto(image.bytes).collect { event ->
+                    when (event) {
+                        is UploadEvent.Progress -> {
+                            _uiState.update {
+                                it.copy(uploadProgress = event.fraction)
+                            }
+                        }
+
+                        is UploadEvent.Done -> {
+                            val now = clock.now()
+                            profileRepository
+                                .updatePhotoUrl(event.downloadUrl, now)
+                                .getOrThrow()
+
+                            savedStateHandle[KEY_SELECTED_PHOTO] = null
+                            _uiState.update {
+                                it.copy(
+                                    photoUrl = event.downloadUrl,
+                                    photoUpdatedAt = now,
+                                    selectedPhoto = null,
+                                    uploadProgress = null,
+                                    message = "Foto profil diperbarui"
+                                )
+                            }
+                        }
+                    }
+                }
             } catch (e: CancellationException) {
                 _uiState.update { it.copy(isCompressing = false, uploadProgress = null) }
                 throw e
